@@ -749,6 +749,49 @@ def main():
     check(f({"intervalo_minutos": "45"}) == 2700, "string numerica e aceita")
     check(unidate.DEFAULT_CONFIG.get("intervalo_minutos") == 15, "padrao documentado na config")
 
+    print("\n12.38) definir_opcao: liga/desliga ajustes booleanos pela interface")
+    A, B, C, R = reset(tmp)
+    check(unidate.definir_opcao("incluir_dia_inteiro", True) is True, "mudou")
+    check(json.load(open(unidate.CONFIG_PATH))["incluir_dia_inteiro"] is True, "gravou na config")
+    check(unidate.definir_opcao("incluir_dia_inteiro", True) is False, "sem mudanca devolve False")
+    erro = False
+    try:
+        unidate.definir_opcao("banana", True)
+    except ValueError:
+        erro = True
+    check(erro, "chave desconhecida levanta ValueError")
+    erro = False
+    try:
+        unidate.definir_opcao("dias_a_frente", True)
+    except ValueError:
+        erro = True
+    check(erro, "chave que nao e booleana levanta ValueError")
+
+    print("\n12.39) evento de dia inteiro so vira bloco quando a opcao esta ligada")
+    A, B, C, R = reset(tmp)
+    mk_event(B, base, base + timedelta(days=1), "Lembrete de dia inteiro", allday=True)
+    unidate.cmd_sync(Args())
+    check(len(ocupados_in("cal-A")) == 0, "desligado (padrao): nao espelha dia inteiro")
+
+    unidate.definir_opcao("incluir_dia_inteiro", True)
+    unidate.cmd_sync(Args())
+    check(len(ocupados_in("cal-A")) == 1, "ligado: passa a espelhar")
+
+    unidate.definir_opcao("incluir_dia_inteiro", False)
+    unidate.cmd_sync(Args())
+    check(len(ocupados_in("cal-A")) == 0, "desligar de volta remove o bloco criado")
+
+    print("\n12.40) lembrete de dia inteiro nao bloqueia o dia das outras agendas")
+    A, B, C, R = reset(tmp)
+    mk_event(B, base.replace(hour=0, minute=0), base.replace(hour=0, minute=0) + timedelta(days=1),
+             "Aniversario de alguem", allday=True)
+    mk_event(C, base + timedelta(hours=4), base + timedelta(hours=5), "Reuniao real")
+    unidate.cmd_sync(Args())
+    blocos = ocupados_in("cal-A")
+    check(len(blocos) == 1, "so a reuniao real gerou bloco em Pessoal (deu %d)" % len(blocos))
+    dur = (unidate.from_nsdate(blocos[0].endDate()) - unidate.from_nsdate(blocos[0].startDate()))
+    check(dur == timedelta(hours=1), "e o bloco tem 1h, nao o dia inteiro (deu %s)" % dur)
+
     shutil.rmtree(tmp, ignore_errors=True)
     print("\n" + "=" * 60)
     if FAILS:

@@ -150,6 +150,7 @@ Quando você clicar no ícone, vai encontrar:
 | **Apagar todos os blocos** | Limpar tudo que o unidate criou, sem desinstalar |
 | **Ler compromissos de…** | Escolhe as agendas de origem |
 | **Criar blocos "Ocupado" em…** | Escolhe as agendas de destino |
+| **Ajustes** | Submenu com os interruptores mais usados, sem abrir arquivo nenhum: incluir eventos de dia inteiro, ignorar eventos marcados como "Livre", ignorar convites recusados |
 | **Abrir configuração** | Abre o arquivo de ajustes (veja abaixo) |
 | **Ver log** | Abre o registro do que ele fez, útil se algo parecer errado |
 | **Recriar configuração** | Redetecta suas agendas do zero |
@@ -170,7 +171,7 @@ Quase ninguém precisa mexer aqui. Se quiser, o menu **Abrir configuração** ab
 | `intervalo_minutos` | De quanto em quanto tempo sincroniza. Mínimo 5 | 15 |
 | `duracao_minima_bloco_min` | Duração mínima de cada bloco. Um convite de 15 min (10h–10h15) vira um bloco de 30 min (10h–10h30), para ninguém encaixar reunião no resto da meia hora | 30 |
 | `duracao_minima_min` | Ignora compromissos mais curtos que isto. Suba para 15 se reuniões curtíssimas poluem | 0 |
-| `incluir_dia_inteiro` | Se compromissos de dia inteiro (férias, feriados) devem virar bloco | não |
+| `incluir_dia_inteiro` | Se compromissos de dia inteiro devem virar bloco. **Desligado por padrão**, e é o que você quer na maioria dos casos: férias, feriados, aniversários e lembretes de dia inteiro deixariam o dia todo marcado como ocupado em todas as suas agendas. Também disponível no menu **Ajustes** | não |
 | `ignorar_eventos_livres` | Pula o que você marcou como "Livre/Disponível" | sim |
 | `ignorar_recusados` | Pula convites que você recusou | sim |
 | `titulo_espelho` | O nome dos blocos. Pode trocar por "Indisponível", por exemplo | Ocupado |

@@ -188,6 +188,7 @@ class UnidateApp(NSObject):
         self.ocupado = False
         self._pendente = None
         self.agendas = []          # cache: montar menu não pode abrir o store
+        self.opcoes = {}
         self.ultimo = "ainda não sincronizou"
         self.item = NSStatusBar.systemStatusBar().statusItemWithLength_(
             NSVariableStatusItemLength)
@@ -323,6 +324,33 @@ class UnidateApp(NSObject):
             "Criar blocos “Ocupado” em…", None, "")
         it.setSubmenu_(self._submenu_papel("destino"))
         self.menu.addItem_(it)
+
+        aj = NSMenu.alloc().init()
+        aj.setAutoenablesItems_(False)
+        self._item(aj, "Incluir eventos de dia inteiro", "alternarOpcao:",
+                   ligado=not self.ocupado,
+                   marcado=self.opcoes.get("incluir_dia_inteiro", False),
+                   repr_obj="incluir_dia_inteiro")
+        nota = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "   desligado, férias e lembretes de dia inteiro", None, "")
+        nota.setEnabled_(False)
+        aj.addItem_(nota)
+        nota2 = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "   não bloqueiam o dia nas outras agendas", None, "")
+        nota2.setEnabled_(False)
+        aj.addItem_(nota2)
+        aj.addItem_(NSMenuItem.separatorItem())
+        self._item(aj, "Ignorar eventos marcados como “Livre”", "alternarOpcao:",
+                   ligado=not self.ocupado,
+                   marcado=self.opcoes.get("ignorar_eventos_livres", True),
+                   repr_obj="ignorar_eventos_livres")
+        self._item(aj, "Ignorar convites que você recusou", "alternarOpcao:",
+                   ligado=not self.ocupado,
+                   marcado=self.opcoes.get("ignorar_recusados", True),
+                   repr_obj="ignorar_recusados")
+        it = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Ajustes", None, "")
+        it.setSubmenu_(aj)
+        self.menu.addItem_(it)
         self.menu.addItem_(NSMenuItem.separatorItem())
 
         self._add("Abrir configuração", "abrirConfig:")
@@ -380,7 +408,9 @@ class UnidateApp(NSObject):
         try:
             with _log_para_arquivo():
                 store = unidate.open_store()
-                self.agendas = unidate.listar_agendas(store, unidate.load_config())
+                cfg = unidate.load_config()
+                self.agendas = unidate.listar_agendas(store, cfg)
+                self.opcoes = {k: bool(cfg.get(k)) for k in unidate.OPCOES_BOOLEANAS}
         except SystemExit:
             pass
         except Exception:
@@ -481,6 +511,29 @@ class UnidateApp(NSObject):
                 res = Resultado(False, "Falhou ao gravar a escolha",
                                 "Verifique a permissão de Calendário.")
             self._pendente = (rot, res)
+            self.performSelectorOnMainThread_withObject_waitUntilDone_(
+                "terminou:", None, False)
+
+        threading.Thread(target=trabalho, daemon=True).start()
+
+    def alternarOpcao_(self, sender):
+        chave = str(sender.representedObject() or "")
+        if chave not in unidate.OPCOES_BOOLEANAS or self.ocupado:
+            return
+        novo = not self.opcoes.get(chave, False)
+        self.ocupado = True
+        self._icone(True)
+        self._montar_menu()
+
+        def trabalho():
+            try:
+                with _log_para_arquivo():
+                    unidate.definir_opcao(chave, novo)
+                res = _executar(unidate.cmd_sync, _Args())
+            except SystemExit:
+                res = Resultado(False, "Falhou ao gravar o ajuste",
+                                "Verifique a permissão de Calendário.")
+            self._pendente = ("Ajuste aplicado", res)
             self.performSelectorOnMainThread_withObject_waitUntilDone_(
                 "terminou:", None, False)
 

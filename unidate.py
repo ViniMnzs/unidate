@@ -459,6 +459,31 @@ def intervalo_segundos(cfg) -> int:
     return limitado * 60
 
 
+# Ajustes booleanos que a interface pode alternar. Restrito de propósito: um
+# `definir_opcao` que aceitasse qualquer chave viraria porta para gravar
+# lixo na configuração a partir de um clique.
+OPCOES_BOOLEANAS = (
+    "incluir_dia_inteiro",
+    "ignorar_eventos_livres",
+    "ignorar_recusados",
+    "ignorar_cancelados",
+)
+
+
+def definir_opcao(chave: str, valor: bool) -> bool:
+    """Liga/desliga um ajuste booleano. True se algo mudou."""
+    if chave not in OPCOES_BOOLEANAS:
+        raise ValueError("opção %r não é booleana ou não pode ser alterada pela "
+                         "interface; edite o config.json" % chave)
+    cfg = load_config()
+    if bool(cfg.get(chave)) == bool(valor):
+        return False
+    cfg[chave] = bool(valor)
+    save_json(CONFIG_PATH, cfg)
+    log("Ajuste '%s': %s." % (chave, "ligado" if valor else "desligado"))
+    return True
+
+
 def listar_agendas(store, cfg) -> list:
     """Agendas da máquina com o papel atual de cada uma.
 
