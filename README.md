@@ -65,7 +65,15 @@ Você precisa de um Mac com **macOS 11 (Big Sur) ou mais novo**.
 
 ### Caminho fácil: baixar pronto
 
-1. Vá em **[Releases](https://github.com/ViniMnzs/unidate/releases)** e baixe o `unidate.zip` da versão mais recente.
+1. Vá em **[Releases](https://github.com/ViniMnzs/unidate/releases)** e baixe o arquivo da versão mais recente. **Há dois, escolha pelo processador do seu Mac:**
+
+   | Seu Mac | Baixe |
+   |---|---|
+   | Chip Apple (M1, M2, M3, M4…) | `unidate-arm64.zip` |
+   | Processador Intel | `unidate-x86_64.zip` |
+
+   Não sabe qual é o seu? Menu  no alto à esquerda → **Sobre este Mac**. Se aparecer "Chip Apple M…", é o primeiro. Se aparecer "Processador Intel", é o segundo.
+
 2. Descompacte (dois cliques).
 3. Arraste o **unidate.app** para a pasta **Aplicativos**.
 4. **Na primeira vez:** clique com o **botão direito** no unidate e escolha **Abrir**. Vai aparecer um aviso dizendo que o desenvolvedor não pôde ser verificado — clique em **Abrir** de novo.
@@ -336,6 +344,29 @@ Antes de empacotar, o script roda duas portas de qualidade, porque um `.app` que
 2. **confere o `Info.plist`** — `LSUIElement` e as duas chaves de uso de Calendário. Sem elas o macOS mata o app no instante em que ele pede permissão.
 
 Log completo do py2app em `build/py2app.log`.
+
+## Publicando uma release
+
+As releases são montadas pelo GitHub Actions, não na máquina de ninguém. Enviar uma tag basta:
+
+```bash
+git tag -a v1.0.0 -m "unidate 1.0.0"
+git push origin v1.0.0
+```
+
+O workflow em `.github/workflows/release.yml` então:
+
+1. roda a suíte de testes (ela não precisa de macOS nem de permissão de Calendário, então serve de porta antes de gastar tempo empacotando);
+2. monta o app **em dois runners** — `macos-14` (arm64) e `macos-13` (Intel) — porque o py2app empacota para a arquitetura em que roda, e um bundle arm64 não abre em Mac Intel;
+3. empacota cada um com `ditto` (o `zip` comum quebra bundles: perde symlinks e resource forks);
+4. cria a release com os dois `.zip` anexados, usando o `gh` que já vem nos runners — sem depender de action de terceiro.
+
+Para refazer uma release, apague a tag e a release e envie a tag de novo:
+
+```bash
+gh release delete v1.0.0 --yes
+git push --delete origin v1.0.0
+```
 
 ## Licença
 

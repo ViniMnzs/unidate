@@ -1,0 +1,67 @@
+name: release
+
+# Publica uma release quando uma tag vX.Y.Z é enviada.
+# Dois runners porque o py2app empacota para a arquitetura em que roda: um
+# bundle arm64 não abre em Mac Intel, e vice-versa.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  montar:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-13
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # A suíte roda sem macOS e sem permissão de Calendário (stub de EventKit),
+      # então serve de porta antes de gastar tempo empacotando.
+      - name: Testes
+        run: python3 tests/test_unidate.py
+
+      - name: Montar o app
+        run: ./build_app.sh
+
+      - name: Conferir a arquitetura do binário
+        run: file dist/unidate.app/Contents/MacOS/unidate
+
+      # ditto preserva symlinks e resource forks do bundle; zip comum quebra.
+      - name: Empacotar
+        run: ditto -c -k --sequesterRsrc --keepParent dist/unidate.app dist/unidate-${{ matrix.arch }}.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unidate-${{ matrix.arch }}
+          path: dist/unidate-${{ matrix.arch }}.zip
+          if-no-files-found: error
+
+  publicar:
+    needs: montar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artefatos
+          merge-multiple: true
+
+      # gh vem pré-instalado nos runners; evita depender de action de terceiro.
+      - name: Publicar a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -lh artefatos
+          gh release create "${{ github.ref_name }}" artefatos/*.zip \
+            --title "unidate ${{ github.ref_name }}" \
+            --generate-notes
