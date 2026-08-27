@@ -1,0 +1,16 @@
+# build do .app
+build/
+dist/
+app/build/
+app/dist/
+
+# cópia do unidate.py que o build_app.sh publica dentro de app/
+app/unidate.py
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# macOS
+.DS_Store
