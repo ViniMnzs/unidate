@@ -792,6 +792,46 @@ def main():
     dur = (unidate.from_nsdate(blocos[0].endDate()) - unidate.from_nsdate(blocos[0].startDate()))
     check(dur == timedelta(hours=1), "e o bloco tem 1h, nao o dia inteiro (deu %s)" % dur)
 
+    print("\n12.41) agenda de feriados nao entra ligada sozinha")
+    casos = [
+        ("Feriados de Brasil", False), ("Feriados no Brasil", False),
+        ("Feriados", False), ("Holidays in Brazil", False),
+        ("Brazilian Holidays", False), ("Holidays", False),
+        ("Dias festivos", False), ("Feiertage in Deutschland", False),
+        ("Aniversários", False), ("Birthdays", False),
+        ("Trabalho", True), ("Pessoal", True), ("Projetos", True),
+        ("Feira de negócios", True),          # contem "Feir" mas nao e feriado
+    ]
+    EK.EKEventStore.events = []
+    EK.EKEventStore.calendars = [
+        EK.Calendar("c-%d" % i, nome, "ContaX", stype=EK.EKSourceTypeCalDAV)
+        for i, (nome, _) in enumerate(casos)
+    ]
+    calsync_cfg = os.path.join(tmp, "config-fer.json")
+    unidate.CONFIG_PATH = calsync_cfg
+    if os.path.exists(calsync_cfg):
+        os.remove(calsync_cfg)
+    unidate.cmd_init(Args(force=True))
+    liga = {a["nome"]: a["origem"] for a in json.load(open(calsync_cfg))["agendas"]}
+    for nome, esperado in casos:
+        check(liga.get(nome) is esperado,
+              "%-26s -> %s" % (nome, "ligada" if esperado else "desligada"))
+
+    print("\n12.42) escolha explicita do usuario nao e sobrescrita")
+    A, B, C, R = reset(tmp)
+    FER = EK.Calendar("cal-FER", "Feriados de Brasil", "ContaX", stype=EK.EKSourceTypeCalDAV)
+    EK.EKEventStore.calendars.append(FER)
+    mk_event(B, base, base + timedelta(hours=1), "Diretoria")
+    unidate.cmd_sync(Args())
+    ids = {a["id"]: a for a in json.load(open(unidate.CONFIG_PATH))["agendas"]}
+    check(ids["cal-FER"]["origem"] is False, "feriados entrou desligada")
+    cals_f = unidate.all_calendars(EK.EKEventStore.alloc().init())
+    unidate.definir_papel("cal-FER", "destino", True, cals=cals_f)
+    unidate.cmd_sync(Args())
+    ids = {a["id"]: a for a in json.load(open(unidate.CONFIG_PATH))["agendas"]}
+    check(ids["cal-FER"]["destino"] is True,
+          "o que voce ligou a mao continua ligado depois do ciclo")
+
     shutil.rmtree(tmp, ignore_errors=True)
     print("\n" + "=" * 60)
     if FAILS:

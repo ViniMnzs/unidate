@@ -59,10 +59,21 @@ EK_CAL_SUBSCRIPTION = _ek("EKCalendarTypeSubscription", 3)
 EK_CAL_BIRTHDAY = _ek("EKCalendarTypeBirthday", 4)
 EK_SRC_LOCAL = _ek("EKSourceTypeLocal", 0)
 
-# O Exchange expõe a agenda de aniversários como agenda comum (tipo Exchange),
-# não como EKCalendarTypeBirthday — só o nome a distingue.
-NOMES_ANIVERSARIOS = ("aniversários", "aniversarios", "birthdays", "geburtstage",
-                      "cumpleaños", "anniversaires", "compleanni")
+# Exchange e Google expõem as agendas de aniversários e de feriados como
+# agendas comuns — nem EKCalendarTypeBirthday, nem tipo assinatura. Só o nome
+# as distingue, e o nome vem com o país colado ("Feriados de Brasil",
+# "Holidays in Brazil"), então a comparação é por trecho, não exata.
+#
+# Isto decide apenas o PADRÃO de uma agenda recém-detectada. Escolha feita à
+# mão no menu nunca é sobrescrita.
+TRECHOS_AGENDA_AUTOMATICA = (
+    # aniversários
+    "aniversário", "aniversario", "birthday", "geburtstag", "cumpleaño",
+    "anniversaire", "compleann",
+    # feriados
+    "feriado", "holiday", "dias festivos", "días festivos", "feiertag",
+    "jours fériés", "festività",
+)
 
 CAL_TYPE_NAMES = {0: "Local", 1: "CalDAV/iCloud", 2: "Exchange", 3: "Assinatura", 4: "Aniversários"}
 
@@ -201,8 +212,19 @@ def is_conta_conectada(cal) -> bool:
     return source_type_of(cal) != EK_SRC_LOCAL
 
 
-def parece_aniversarios(cal) -> bool:
-    return norm_title(cal.title()) in NOMES_ANIVERSARIOS
+def parece_agenda_automatica(cal) -> bool:
+    """Agenda que o provedor gera sozinho: aniversários, feriados.
+
+    Uma delas como origem transforma cada feriado ou aniversário em bloco
+    "Ocupado" em todas as suas outras agendas — o dia inteiro marcado por algo
+    que não é compromisso.
+    """
+    nome = norm_title(cal.title())
+    return any(t in nome for t in TRECHOS_AGENDA_AUTOMATICA)
+
+
+# nome antigo, mantido para não quebrar quem já chamava
+parece_aniversarios = parece_agenda_automatica
 
 
 def slot_of(start: datetime, end: datetime) -> tuple:
@@ -354,8 +376,8 @@ def cmd_init(args) -> int:
             motivo = "(somente leitura)"
         elif c is not None and not is_conta_conectada(c):
             motivo = "(fonte local — não é conta conectada)"
-        elif c is not None and parece_aniversarios(c):
-            motivo = "(agenda de aniversários)"
+        elif c is not None and parece_agenda_automatica(c):
+            motivo = "(agenda de aniversários/feriados)"
         elif not a["origem"]:
             motivo = "(tipo de agenda não sincronizável)"
         else:
