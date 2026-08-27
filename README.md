@@ -123,7 +123,18 @@ Clique no ícone. Você vai ver dois submenus:
 
 Cada um lista as agendas que existem no seu Mac, **agrupadas por conta**, com o nome que você já conhece. Basta marcar e desmarcar. Você nunca precisa descobrir código, ID ou número de nada.
 
-Na primeira vez o unidate já vem com uma escolha razoável: liga as agendas de contas conectadas (Google, Microsoft/Exchange, iCloud) e deixa de fora agendas de aniversários, feriados assinados e a agenda local "Meu Mac". Se estiver bom, não precisa mexer.
+Na primeira vez o unidate já vem com uma escolha razoável. Ele **liga** as agendas de contas conectadas (Google, Microsoft/Exchange, iCloud) e deixa **de fora**:
+
+| Fica de fora por padrão | Por quê |
+|---|---|
+| **Feriados** e **Aniversários** | Não são compromissos, e como são eventos de dia inteiro, deixariam o dia todo marcado como ocupado em todas as suas agendas. Um feriado nacional não significa que você está ocupado |
+| A agenda local **"Meu Mac"** | Não é conta conectada; nada ali precisa ser espelhado para fora |
+| Agendas **assinadas** | Calendários públicos que você só acompanha |
+| Agendas **somente leitura** | Não podem receber blocos. Continuam podendo ser origem |
+
+Se estiver bom, não precisa mexer. E se você quiser uma dessas na sincronização, basta marcar no menu — a escolha que você faz à mão nunca é desfeita depois.
+
+> **Sobre feriados e aniversários:** o Google e o Microsoft entregam essas agendas como agendas comuns, não com um tipo especial que dê para filtrar. O unidate as reconhece pelo nome, por trecho, porque o nome vem com o país colado — `Feriados de Brasil`, `Holidays in Brazil`, `Feiertage in Deutschland`. Funciona em seis idiomas.
 
 > **Os dois submenus são independentes de propósito.** Uma agenda corporativa que não permite escrita pode ficar marcada só em "Ler compromissos de…" — ela protege as outras sem receber nada. Agendas somente-leitura aparecem desmarcáveis e rotuladas.
 
