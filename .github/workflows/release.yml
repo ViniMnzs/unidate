@@ -50,6 +50,22 @@ jobs:
     needs: montar
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Se o histórico foi reescrito depois que este run começou, a tag ficou
+      # obsoleta: publicar aqui recriaria a tag apontando para um commit que já
+      # saiu de main, ressuscitando-o. Aborta em vez de publicar.
+      - name: Conferir que o commit da tag ainda está em main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::O commit $GITHUB_SHA não está mais em main (histórico reescrito). Abortando a publicação."
+            exit 1
+          fi
+          echo "commit $GITHUB_SHA confirmado em main"
+
       - uses: actions/download-artifact@v4
         with:
           path: artefatos
