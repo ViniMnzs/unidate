@@ -65,14 +65,9 @@ Você precisa de um Mac com **macOS 11 (Big Sur) ou mais novo**.
 
 ### Caminho fácil: baixar pronto
 
-1. Vá em **[Releases](https://github.com/ViniMnzs/unidate/releases)** e baixe o arquivo da versão mais recente. **Há dois, escolha pelo processador do seu Mac:**
+1. Vá em **[Releases](https://github.com/ViniMnzs/unidate/releases)** e baixe o `unidate-arm64.zip` da versão mais recente.
 
-   | Seu Mac | Baixe |
-   |---|---|
-   | Chip Apple (M1, M2, M3, M4…) | `unidate-arm64.zip` |
-   | Processador Intel | `unidate-x86_64.zip` |
-
-   Não sabe qual é o seu? Menu  no alto à esquerda → **Sobre este Mac**. Se aparecer "Chip Apple M…", é o primeiro. Se aparecer "Processador Intel", é o segundo.
+   > **Mac com processador Intel?** A release pronta é só para **chip Apple** (M1 e mais novos). Não sabe qual é o seu? Menu  no alto à esquerda → **Sobre este Mac**. Se aparecer "Processador Intel", use o [caminho do desenvolvedor](#caminho-do-desenvolvedor-compilar-você-mesmo) abaixo — compilar leva um comando e funciona igual. O motivo: o py2app empacota para a arquitetura em que roda, e o GitHub retirou os runners macOS Intel, então não há como gerar o pacote Intel automaticamente.
 
 2. Descompacte (dois cliques).
 3. Arraste o **unidate.app** para a pasta **Aplicativos**.
@@ -379,7 +374,7 @@ Commits que só mexem em documentação (`*.md`, `LICENSE`, `.gitignore`) **não
 O workflow em `.github/workflows/release.yml` então:
 
 1. roda a suíte de testes (ela não precisa de macOS nem de permissão de Calendário, então serve de porta antes de gastar tempo empacotando);
-2. monta o app **em dois runners** — `macos-14` (arm64) e `macos-13` (Intel) — porque o py2app empacota para a arquitetura em que roda, e um bundle arm64 não abre em Mac Intel;
+2. monta o app no runner `macos-14` (arm64). Só Apple Silicon: o py2app empacota para a arquitetura em que roda, e o GitHub retirou os runners macOS Intel — o job Intel ficava enfileirado para sempre e travava a publicação, que dependia dos dois. Quem tem Mac Intel compila localmente;
 3. empacota cada um com `ditto` (o `zip` comum quebra bundles: perde symlinks e resource forks);
 4. cria a release com os dois `.zip` anexados, usando o `gh` que já vem nos runners — sem depender de action de terceiro.
 

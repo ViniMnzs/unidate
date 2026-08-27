@@ -28,16 +28,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Apenas Apple Silicon. Os runners macOS Intel (macos-13) foram retirados pelo
+  # GitHub: o job arm64 completava e o x86_64 ficava enfileirado para sempre,
+  # travando a publicação, que depende dos dois. Um Mac Intel precisa compilar
+  # localmente com ./build_app.sh — o py2app empacota para a arquitetura em que
+  # roda, então não há como gerar o bundle Intel a partir de um runner arm64.
   montar:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-14
-            arch: arm64
-          - runner: macos-13
-            arch: x86_64
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
@@ -54,12 +51,12 @@ jobs:
 
       # ditto preserva symlinks e resource forks do bundle; zip comum quebra.
       - name: Empacotar
-        run: ditto -c -k --sequesterRsrc --keepParent dist/unidate.app dist/unidate-${{ matrix.arch }}.zip
+        run: ditto -c -k --sequesterRsrc --keepParent dist/unidate.app dist/unidate-arm64.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: unidate-${{ matrix.arch }}
-          path: dist/unidate-${{ matrix.arch }}.zip
+          name: unidate-arm64
+          path: dist/unidate-arm64.zip
           if-no-files-found: error
 
   publicar:
