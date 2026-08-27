@@ -1,15 +1,31 @@
 name: release
 
-# Publica uma release quando uma tag vX.Y.Z é enviada.
-# Dois runners porque o py2app empacota para a arquitetura em que roda: um
-# bundle arm64 não abre em Mac Intel, e vice-versa.
+# Duas portas de entrada:
+#
+#   push em main  -> atualiza a prerelease rolante "main-latest", sempre com o
+#                    build mais novo. Não gera versão nova a cada commit, que
+#                    encheria a página de Releases de ruído.
+#   push de tag v* -> release estável e imutável daquela versão.
+#
+# Commits que só mexem em documentação não disparam build: dois runners macOS
+# por push custam de 10 a 20 minutos de fila para nada.
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+    paths-ignore:
+      - "**/*.md"
+      - LICENSE
+      - .gitignore
   workflow_dispatch:
 
 permissions:
   contents: write
+
+# Push em sequência: o build antigo é descartado em vez de correr contra o novo.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   montar:
@@ -57,7 +73,7 @@ jobs:
       # Se o histórico foi reescrito depois que este run começou, a tag ficou
       # obsoleta: publicar aqui recriaria a tag apontando para um commit que já
       # saiu de main, ressuscitando-o. Aborta em vez de publicar.
-      - name: Conferir que o commit da tag ainda está em main
+      - name: Conferir que o commit ainda está em main
         run: |
           git fetch origin main
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
@@ -71,13 +87,32 @@ jobs:
           path: artefatos
           merge-multiple: true
 
-      # gh vem pré-instalado nos runners; evita depender de action de terceiro.
-      - name: Publicar a release
+      - name: Publicar
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           ls -lh artefatos
-          gh release create "${{ github.ref_name }}" artefatos/*.zip \
-            --title "unidate ${{ github.ref_name }}" \
-            --generate-notes
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+            # Idempotente de propósito: a release pode já existir (criada à mão,
+            # ou por um run anterior). Troca os arquivos em vez de falhar.
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              echo "release $TAG existe; substituindo os arquivos"
+              gh release upload "$TAG" artefatos/*.zip --clobber
+            else
+              gh release create "$TAG" artefatos/*.zip \
+                --title "unidate $TAG" --target "$GITHUB_SHA" --generate-notes
+            fi
+          else
+            printf 'Build automático do commit %s.\n\nNão é uma versão estável: é sempre o topo do main. Para uma versão fixa, use a release mais recente sem o rótulo de pré-lançamento.\n' \
+              "${GITHUB_SHA:0:7}" > notas.md
+            # A rolante aponta para o commit atual: apaga tag e release antigas
+            # em vez de mover a tag, que confunde quem já clonou.
+            gh release delete main-latest --yes --cleanup-tag || true
+            gh release create main-latest artefatos/*.zip \
+              --title "Build mais recente do main" --target "$GITHUB_SHA" \
+              --prerelease --notes-file notas.md
+          fi

@@ -359,12 +359,22 @@ Log completo do py2app em `build/py2app.log`.
 
 ## Publicando uma release
 
-As releases são montadas pelo GitHub Actions, não na máquina de ninguém. Enviar uma tag basta:
+As releases são montadas pelo GitHub Actions, não na máquina de ninguém. Há dois caminhos, e a diferença importa:
+
+| Gatilho | O que sai |
+|---|---|
+| **Commit em `main`** | Atualiza a prerelease rolante **`main-latest`**, sempre com o build mais novo |
+| **Tag `vX.Y.Z`** | Release **estável e imutável** daquela versão |
 
 ```bash
-git tag -a v1.0.0 -m "unidate 1.0.0"
-git push origin v1.0.0
+# versão estável
+git tag -a v1.1.0 -m "unidate 1.1.0"
+git push origin v1.1.0
 ```
+
+Por que a rolante em vez de uma versão nova por commit: publicar `v1.0.1`, `v1.0.2`, `v1.0.3` a cada push encheria a página de Releases de ruído e não diria nada a quem só quer baixar. A `main-latest` sempre tem o mais recente, e as versões numeradas marcam o que você decidiu chamar de release.
+
+Commits que só mexem em documentação (`*.md`, `LICENSE`, `.gitignore`) **não** disparam build — dois runners macOS por push custam de 10 a 20 minutos de fila, e não faz sentido gastar isso para corrigir um typo.
 
 O workflow em `.github/workflows/release.yml` então:
 
